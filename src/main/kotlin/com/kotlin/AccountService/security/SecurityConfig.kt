@@ -6,6 +6,7 @@ import com.kotlin.AccountService.errors.customexceptions.UserNotFoundException
 import com.kotlin.AccountService.repositories.UserRepository
 import com.kotlin.AccountService.security.customconfig.CustomAccessDeniedHandler
 import com.kotlin.AccountService.security.customconfig.UserDetailsImpl
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest
 import org.springframework.context.annotation.Bean
@@ -33,7 +34,8 @@ import java.util.*
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-class SecurityConfig( private val restAuthEntryPoint: RestAuthEntryPoint,  private val userRepository: UserRepository) {
+class SecurityConfig(@Autowired private val restAuthEntryPoint: RestAuthEntryPoint,  private val userRepository: UserRepository) {
+    val logger = LoggerFactory.getLogger(this::class.java)
 
     @Bean
     fun filterChain(http: HttpSecurity): SecurityFilterChain {
@@ -61,7 +63,7 @@ class SecurityConfig( private val restAuthEntryPoint: RestAuthEntryPoint,  priva
             .httpBasic { it.authenticationEntryPoint(restAuthEntryPoint)
             }
 
-        // LOGGER.info("Finished Security")
+         logger.info("Security set up complete")
 
         return http.build()
     }

@@ -82,7 +82,7 @@ class RestResponseEntityExceptionHandler : ResponseEntityExceptionHandler() {
         SalaryBelowZeroException::class,
         NoExistingDatePeriodException::class,
         UserRoleExistsException::class,
-        UserCantDeleteItSelfException::class,
+        AdminCantDeleteItSelfException::class,
         RoleCombinationException::class,
         RoleAlreadyAssignedException::class,
         InsufficientRoleCountException::class,

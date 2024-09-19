@@ -15,6 +15,8 @@ interface UserRepository: JpaRepository<User, Long> {
 
     fun deleteByEmail(email: String): User?
 
+    fun existsByEmail(email: String): Boolean
+
 }
 
 @Repository

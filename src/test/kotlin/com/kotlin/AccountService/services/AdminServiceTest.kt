@@ -1,6 +1,7 @@
 package com.kotlin.AccountService.services
 
 import com.kotlin.AccountService.entities.User
+import com.kotlin.AccountService.errors.customexceptions.AdminCantDeleteItSelfException
 import com.kotlin.AccountService.errors.customexceptions.UserNotFoundException
 import com.kotlin.AccountService.repositories.UserRepository
 import io.mockk.*
@@ -20,11 +21,13 @@ class AdminServiceTest {
 
     @BeforeEach
     fun setUp() {
-        myUsers = mutableListOf()
+        myUsers = dummyUserList
     }
 
     @AfterEach
     fun tearDown() {
+        clearMocks(userRepository)
+
     }
 
     @Test
@@ -45,7 +48,7 @@ class AdminServiceTest {
     @Test
     fun `A user can be found in database`() {
         val email = "john@acme.com"
-        every { userRepository.findByEmailIgnoreCase(email)} returns dummyUserList[0]
+        every { userRepository.findByEmailIgnoreCase(email)} returns myUsers[0]
 
         val user = adminService.retrieveEmployeeInfo(email)
 
@@ -68,7 +71,44 @@ class AdminServiceTest {
     @Test
     fun `A user can safely be deleted from the database`() {
         val email = "john@acme.com"
+        val adminEmail = "adminemail@gmail.com"
 
-        every { userRepository.deleteByEmail(email) } just Runs
+
+        every { userRepository.deleteByEmail(email) } returns myUsers[0]
+
+       adminService.deleteUserFromDatabase(adminEmail, email)
+
+        verify(exactly = 1) { userRepository.deleteByEmail(email)}
+
+    }
+
+    @Test
+    fun `An error is thrown when a user can't be found for deletion`() {
+        val email = "john@acme.com"
+        val adminEmail = "adminemail@gmail.com"
+
+
+        every { userRepository.deleteByEmail(email)} returns null
+
+        val exception = assertThrows<UserNotFoundException> {
+            adminService.deleteUserFromDatabase(adminEmail, email)
+        }
+
+        assertEquals("User not found", exception.message)
+
+    }
+
+    @Test
+    fun `Throws an error when an administrator tries to delete itself`() {
+        val email = "adminemail@gmail.com"
+        val adminEmail = "adminemail@gmail.com"
+
+        val exception = assertThrows<AdminCantDeleteItSelfException> {
+            adminService.deleteUserFromDatabase(adminEmail, email)
+        }
+
+        assertEquals("Can't remove ADMINISTRATOR role!", exception.message)
+
+
     }
 }

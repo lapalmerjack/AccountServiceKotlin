@@ -1,6 +1,8 @@
 package com.kotlin.AccountService.controllers
 
+import com.kotlin.AccountService.entities.DeletionResponse
 import com.kotlin.AccountService.entities.User
+import com.kotlin.AccountService.security.customconfig.UserDetailsImpl
 import com.kotlin.AccountService.services.AdminService
 import jakarta.validation.Valid
 import org.slf4j.LoggerFactory
@@ -9,6 +11,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.core.userdetails.UserDetails
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
@@ -37,6 +40,20 @@ class Administrator(private val adminService: AdminService) {
         logger.info("User {} found", fetchedUser.email)
 
         return ResponseEntity(fetchedUser, HttpStatus.OK)
+
+    }
+
+    @DeleteMapping("/user/{email}")
+    fun deleteUser(@Valid @AuthenticationPrincipal user: UserDetailsImpl, email: String): ResponseEntity<DeletionResponse> {
+        logger.info("Beginning to delete user")
+
+        adminService.deleteUserFromDatabase(user.username, email)
+
+        logger.info("User has been deleted")
+        val deletionResponse = DeletionResponse(email)
+
+        return ResponseEntity(deletionResponse, HttpStatus.OK)
+
 
     }
 
