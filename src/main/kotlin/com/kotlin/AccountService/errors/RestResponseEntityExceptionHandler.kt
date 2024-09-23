@@ -1,6 +1,7 @@
 package com.kotlin.AccountService.errors
 
 import com.kotlin.AccountService.errors.customexceptions.*
+import lombok.extern.java.Log
 
 
 import org.slf4j.LoggerFactory
@@ -99,6 +100,8 @@ class RestResponseEntityExceptionHandler : ResponseEntityExceptionHandler() {
             e.message, HttpStatus.BAD_REQUEST.value(),
             webRequest, "Bad Request"
         )
+
+        LOGGER.info("${errorMessage.toString()} is my error message")
 
         return ResponseEntity(errorMessage, HttpStatus.BAD_REQUEST)
     }

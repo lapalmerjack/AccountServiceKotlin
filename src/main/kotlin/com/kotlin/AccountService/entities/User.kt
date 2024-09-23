@@ -32,7 +32,7 @@ data class User(
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @NotBlank
-    @Size(min = 12, message = "Password length must be 12 chars minimum!")
+    @field:Size(min = 12, message = "Password length must be 12 chars minimum!")
     var password: String,
 
     @Column(name = "failed_attempts")

@@ -86,7 +86,7 @@ class SecurityConfig(@Autowired private val restAuthEntryPoint: RestAuthEntryPoi
     @Bean
     fun userDetailsService(): UserDetailsService {
         return UserDetailsService { email: String ->
-            // LOGGER.info("Checking if user exists");
+            logger.info("Checking if user exists");
             val databaseUser: User = userRepository.findByEmailIgnoreCase(email.lowercase(Locale.getDefault()))
                 ?: throw UserNotFoundException()
 

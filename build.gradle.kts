@@ -32,13 +32,23 @@ dependencies {
 	implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 	implementation("com.h2database:h2:2.3.232")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
-	implementation("jakarta.validation:jakarta.validation-api:3.1.0")
+
+	implementation("org.springframework.boot:spring-boot-starter-validation:3.3.3")
+	implementation("org.hibernate.validator:hibernate-validator:8.0.1.Final")
+	implementation("jakarta.validation:jakarta.validation-api:3.0.1")
+	testImplementation("org.springframework.boot:spring-boot-starter-validation:3.3.3")
+
+
+
+
+
 	compileOnly("org.projectlombok:lombok")
 	annotationProcessor("org.projectlombok:lombok")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testImplementation("org.springframework.security:spring-security-test")
 	testImplementation("io.mockk:mockk:1.13.12")
+
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
 }

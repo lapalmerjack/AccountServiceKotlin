@@ -3,13 +3,15 @@ package com.kotlin.AccountService.services
 import com.kotlin.AccountService.entities.BreachedPasswords
 import com.kotlin.AccountService.entities.User
 import com.kotlin.AccountService.entities.UserResponse
-import com.kotlin.AccountService.errors.customexceptions.PasswordMatchesBannedPasswordException
-import com.kotlin.AccountService.errors.customexceptions.UserFoundException
+import com.kotlin.AccountService.errors.customexceptions.*
 import com.kotlin.AccountService.repositories.UserRepository
 import org.slf4j.LoggerFactory
 import org.springframework.security.crypto.password.PasswordEncoder
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
-class UserService(private val userRepository: UserRepository, private val passWordEncoder: PasswordEncoder) {
+@Service
+class UserService(private val userRepository: UserRepository, private val passwordEncoder: PasswordEncoder) {
 
 
 
@@ -18,22 +20,55 @@ class UserService(private val userRepository: UserRepository, private val passWo
     fun registerUser(user: User): UserResponse {
 
         logger.info("Registering new user to database")
-        checkIfUserExists(user.email)
+        throwErrorIfUserIsAlreadyInDatabase(user.email)
 
         logger.info("Checking for breached password")
         checkIfPasswordIsBanned(user.password)
+        val userToBeSaved = user.copy(password = passwordEncoder.encode(user.password))
+        val savedUser = userRepository.save(userToBeSaved)
 
 
-
-
-        return UserResponse(1,user.name, user.lastname, user.email)
+        return UserResponse(id = savedUser.id!! ,
+            name= savedUser.name,
+            lastName =  savedUser.lastname,
+            email = savedUser.email)
     }
 
-    private fun checkIfUserExists(email: String) = userRepository.existsByEmail(email)
+    @Transactional
+    fun changePassword(userEmail: String, newPassword: String) {
+      val fetchedUser = userRepository.findByEmailIgnoreCase(userEmail)
+          ?: throw UserNotFoundException()
+        logger.info("Checking password length")
+        throwErrorIfPasswordLengthIsTooShort(newPassword)
+
+        logger.info("checking that passwords don't match")
+
+        throwErrorIfNewPassWordMatchesOldPassword(fetchedUser.password, newPassword)
+
+        val userWithUpdatedPassword = fetchedUser
+            .copy(password = passwordEncoder.encode(newPassword))
+
+        userRepository.save(userWithUpdatedPassword)
+
+    }
+
+    private fun throwErrorIfPasswordLengthIsTooShort(password: String) {
+        if (password.length < 12) {
+            throw MinimumPasswordLengthException("Password length must be at least 12 characters")
+        }
+    }
+
+
+
+    private fun throwErrorIfUserIsAlreadyInDatabase(email: String) = userRepository.existsByEmail(email)
         .takeIf { it }?.let { throw UserFoundException() }
 
     private fun checkIfPasswordIsBanned(password: String) =
         BreachedPasswords.entries.any { it.breachedPassword == password }
             .takeIf { it }?.let { throw PasswordMatchesBannedPasswordException() }
 
+    private fun throwErrorIfNewPassWordMatchesOldPassword
+                (oldPassword: String, newPassword: String)
+    = passwordEncoder.matches(oldPassword, newPassword).takeIf { it }
+        ?.let { throw NewPasswordMatchesOldPasswordException() }
 }

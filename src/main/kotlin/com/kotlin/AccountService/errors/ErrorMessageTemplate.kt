@@ -6,10 +6,10 @@ import java.time.LocalDateTime
 
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-class ErrorMessageTemplate(
-    @field:JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss") private val timestamp: LocalDateTime,
-    private val status: Int,
-    private val error: String,
-    private val message: String,
-    private val path: String
+data class ErrorMessageTemplate(
+    @field:JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")  val timestamp: LocalDateTime,
+     val status: Int,
+     val error: String,
+     val message: String,
+    val path: String
 )

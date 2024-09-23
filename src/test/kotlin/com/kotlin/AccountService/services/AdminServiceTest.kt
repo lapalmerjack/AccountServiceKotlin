@@ -5,6 +5,9 @@ import com.kotlin.AccountService.errors.customexceptions.AdminCantDeleteItSelfEx
 import com.kotlin.AccountService.errors.customexceptions.UserNotFoundException
 import com.kotlin.AccountService.repositories.UserRepository
 import io.mockk.*
+import jakarta.validation.Validation
+import jakarta.validation.Validator
+import jakarta.validation.ValidatorFactory
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -16,12 +19,16 @@ private val userRepository: UserRepository = mockk()
 private val adminService = AdminService(userRepository)
 
 class AdminServiceTest {
+    private lateinit var validator: Validator
+
 
     var myUsers: List<User> = mutableListOf()
 
     @BeforeEach
     fun setUp() {
         myUsers = dummyUserList
+        val validatorFactory: ValidatorFactory = Validation.buildDefaultValidatorFactory()
+        validator = validatorFactory.validator
     }
 
     @AfterEach
@@ -43,6 +50,22 @@ class AdminServiceTest {
         // Verify that the mock was called once
         verify(exactly = 1) { userRepository.findAll() }
 
+    }
+
+
+    @Test
+    fun `An error is thrown if the password is too short`() {
+        val myUser =   User(
+            name = "John",
+            lastname = "Doe",
+            email = "john@acme.com",
+            password = "short"
+        )
+
+        val violations = validator.validate(myUser)
+        println(violations)
+        assertFalse(violations.isEmpty())
+        assertTrue(violations.any { it.message == "Password length must be 12 chars minimum!" })
     }
 
     @Test
