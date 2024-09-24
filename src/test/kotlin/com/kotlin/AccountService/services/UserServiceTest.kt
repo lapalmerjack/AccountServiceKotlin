@@ -1,6 +1,7 @@
 package com.kotlin.AccountService.services
 
 import com.kotlin.AccountService.entities.User
+import com.kotlin.AccountService.errors.customexceptions.MinimumPasswordLengthException
 import com.kotlin.AccountService.errors.customexceptions.NewPasswordMatchesOldPasswordException
 import com.kotlin.AccountService.errors.customexceptions.PasswordMatchesBannedPasswordException
 import com.kotlin.AccountService.errors.customexceptions.UserFoundException
@@ -67,6 +68,24 @@ class UserServiceTest {
             userService.registerUser(user)
         }
         assertEquals("The password is in the hacker's database!", exception.message)
+
+    }
+
+    @Test
+    fun `An error is thrown if the new password is too short` () {
+        val myUser =   User(
+            name = "John",
+            lastname = "Doe",
+            email = "john@acme.com",
+            password = "SecurePassword123"
+        )
+
+        val newPassword = "thisisshort"
+        val exception = assertThrows<MinimumPasswordLengthException> {
+            userService.changePassword(myUser.email, newPassword)
+        }
+
+        assertEquals("Password length must be at least 12 characters", exception.message)
 
     }
 

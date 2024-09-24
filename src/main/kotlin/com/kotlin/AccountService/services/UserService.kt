@@ -1,6 +1,7 @@
 package com.kotlin.AccountService.services
 
 import com.kotlin.AccountService.entities.BreachedPasswords
+import com.kotlin.AccountService.entities.Role
 import com.kotlin.AccountService.entities.User
 import com.kotlin.AccountService.entities.UserResponse
 import com.kotlin.AccountService.errors.customexceptions.*
@@ -13,8 +14,6 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class UserService(private val userRepository: UserRepository, private val passwordEncoder: PasswordEncoder) {
 
-
-
     val logger = LoggerFactory.getLogger(this::class.java)
 
     fun registerUser(user: User): UserResponse {
@@ -24,22 +23,35 @@ class UserService(private val userRepository: UserRepository, private val passwo
 
         logger.info("Checking for breached password")
         checkIfPasswordIsBanned(user.password)
-        val userToBeSaved = user.copy(password = passwordEncoder.encode(user.password))
+        val userRoles: MutableSet<Role> = setUserRole(user.roles)
+
+        val userToBeSaved = user.copy(password = passwordEncoder.encode(user.password), roles = userRoles)
+
         val savedUser = userRepository.save(userToBeSaved)
 
 
         return UserResponse(id = savedUser.id!! ,
             name= savedUser.name,
             lastName =  savedUser.lastname,
-            email = savedUser.email)
+            email = savedUser.email,
+            roles = userRoles)
+    }
+
+    private fun setUserRole(userRoles: MutableSet<Role>): MutableSet<Role> {
+        val role = if (userRepository.findAll().isEmpty()) "ROLE_ADMINISTRATOR" else "ROLE_USER";
+        userRoles.add(Role(userRole = role))
+        return userRoles
+
     }
 
     @Transactional
     fun changePassword(userEmail: String, newPassword: String) {
-      val fetchedUser = userRepository.findByEmailIgnoreCase(userEmail)
-          ?: throw UserNotFoundException()
+
         logger.info("Checking password length")
         throwErrorIfPasswordLengthIsTooShort(newPassword)
+
+      val fetchedUser = userRepository.findByEmailIgnoreCase(userEmail)
+          ?: throw UserNotFoundException()
 
         logger.info("checking that passwords don't match")
 
@@ -54,11 +66,9 @@ class UserService(private val userRepository: UserRepository, private val passwo
 
     private fun throwErrorIfPasswordLengthIsTooShort(password: String) {
         if (password.length < 12) {
-            throw MinimumPasswordLengthException("Password length must be at least 12 characters")
+            throw MinimumPasswordLengthException()
         }
     }
-
-
 
     private fun throwErrorIfUserIsAlreadyInDatabase(email: String) = userRepository.existsByEmail(email)
         .takeIf { it }?.let { throw UserFoundException() }

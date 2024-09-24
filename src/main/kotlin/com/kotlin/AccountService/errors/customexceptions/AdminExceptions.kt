@@ -1,7 +1,6 @@
 package com.kotlin.AccountService.errors.customexceptions
 
-class AdminExceptions {
-}
+
 
 class CanNotLockAdministratorException(message: String = "Can't lock the Administrator!"): RuntimeException(message)
 

@@ -65,7 +65,4 @@ data class User(
     }
 
 
-    fun addRole(role: Role) {
-        roles.add(role)
-    }
 }

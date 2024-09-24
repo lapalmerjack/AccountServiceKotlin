@@ -1,8 +1,9 @@
 package com.kotlin.AccountService.services
 
+import com.kotlin.AccountService.entities.AuthorityEntity
+import com.kotlin.AccountService.entities.Role
 import com.kotlin.AccountService.entities.User
-import com.kotlin.AccountService.errors.customexceptions.AdminCantDeleteItSelfException
-import com.kotlin.AccountService.errors.customexceptions.UserNotFoundException
+import com.kotlin.AccountService.errors.customexceptions.*
 import com.kotlin.AccountService.repositories.UserRepository
 import io.mockk.*
 import jakarta.validation.Validation
@@ -26,7 +27,7 @@ class AdminServiceTest {
 
     @BeforeEach
     fun setUp() {
-        myUsers = dummyUserList
+        myUsers = dummyUserList.toMutableList()
         val validatorFactory: ValidatorFactory = Validation.buildDefaultValidatorFactory()
         validator = validatorFactory.validator
     }
@@ -99,6 +100,7 @@ class AdminServiceTest {
 
         every { userRepository.deleteByEmail(email) } returns myUsers[0]
 
+
        adminService.deleteUserFromDatabase(adminEmail, email)
 
         verify(exactly = 1) { userRepository.deleteByEmail(email)}
@@ -132,6 +134,58 @@ class AdminServiceTest {
 
         assertEquals("Can't remove ADMINISTRATOR role!", exception.message)
 
+    }
+
+    @Test
+    fun `A role can be granted for a user`() {
+        val userWithNewRole = myUsers[1]
+
+        val myAuthorityEntity = AuthorityEntity(user = "jane@acme.com", role = "ACCOUNTANT",
+            operation = AuthorityEntity.Operations.GRANT)
+
+        every { userRepository.findByEmailIgnoreCase(any()) } returns userWithNewRole
+        every { userRepository.save(any()) } answers { firstArg() }
+
+
+        val userResponse = adminService.updateUserRoles(myAuthorityEntity)
+        val userRoles = userResponse.roles.map { it.userRole }
+        println("my user roles $userRoles")
+
+        assertTrue(userRoles.contains("ROLE_ACCOUNTANT"))
 
     }
+
+    @Test
+    fun `An error is thrown when the role does not match the four categories`() {
+        val myAuthorityEntity = AuthorityEntity(user = "jane@acme.com", role = "BASEBALLGUY",
+            operation = AuthorityEntity.Operations.GRANT)
+        val exception = assertThrows<RoleDoesNotExistException> {
+            adminService.updateUserRoles(myAuthorityEntity)
+        }
+
+        assertEquals("Role does not exist", exception.message)
+
+    }
+
+    @Test
+    fun `An error is thrown when the user already has the unique role`() {
+        val userWithNewRole = myUsers[1]
+
+        val myAuthorityEntity = AuthorityEntity(user = "jane@acme.com", role = "AUDITOR",
+            operation = AuthorityEntity.Operations.GRANT)
+
+        every { userRepository.findByEmailIgnoreCase(any()) } returns userWithNewRole
+        every { userRepository.findAll()} returns myUsers
+        every { userRepository.save(any()) } answers { firstArg() }
+
+        val exception = assertThrows<RoleAlreadyAssignedException> {
+            adminService.updateUserRoles(myAuthorityEntity)
+        }
+        assertEquals("Role already assigned to a user", exception.message)
+
+
+
+    }
+
+
 }
