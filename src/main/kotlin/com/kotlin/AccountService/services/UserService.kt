@@ -22,7 +22,7 @@ class UserService(private val userRepository: UserRepository, private val passwo
         throwErrorIfUserIsAlreadyInDatabase(user.email)
 
         logger.info("Checking for breached password")
-        checkIfPasswordIsBanned(user.password)
+        throwErrorIfPasswordIsBanned(user.password)
         val userRoles: MutableSet<Role> = setUserRole(user.roles)
 
         val userToBeSaved = user.copy(password = passwordEncoder.encode(user.password), roles = userRoles)
@@ -73,7 +73,7 @@ class UserService(private val userRepository: UserRepository, private val passwo
     private fun throwErrorIfUserIsAlreadyInDatabase(email: String) = userRepository.existsByEmail(email)
         .takeIf { it }?.let { throw UserFoundException() }
 
-    private fun checkIfPasswordIsBanned(password: String) =
+    private fun throwErrorIfPasswordIsBanned(password: String) =
         BreachedPasswords.entries.any { it.breachedPassword == password }
             .takeIf { it }?.let { throw PasswordMatchesBannedPasswordException() }
 

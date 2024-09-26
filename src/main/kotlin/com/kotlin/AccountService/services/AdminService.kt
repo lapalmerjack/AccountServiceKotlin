@@ -6,13 +6,9 @@ import com.kotlin.AccountService.entities.User
 import com.kotlin.AccountService.entities.UserResponse
 import com.kotlin.AccountService.errors.customexceptions.*
 import com.kotlin.AccountService.repositories.UserRepository
-import jakarta.validation.Valid
 import org.slf4j.LoggerFactory
-import org.springframework.security.core.annotation.AuthenticationPrincipal
-import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import org.springframework.web.bind.annotation.RequestBody
 
 
 @Service
@@ -75,9 +71,20 @@ class AdminService(private val userRepository: UserRepository) {
         }
 
     private fun removeUserRole(userRoles: MutableSet<Role>, role: String): Set<Role> {
-        return emptySet()
+        throwErrorIfRoleToRemoveIsAdmin(role)
+        throwErrorIfOnlyOneRoleExistAndCantBeRemoved(userRoles)
+
+        return userRoles. filter { it.userRole != "ROLE_$role" }.toSet()
+
 
     }
+
+    private fun throwErrorIfOnlyOneRoleExistAndCantBeRemoved(userRoles: MutableSet<Role>) =
+        require(userRoles.size > 1) { throw InsufficientRoleCountException() }
+
+    private fun throwErrorIfRoleToRemoveIsAdmin(role: String) =
+        require(role != "ADMINISTRATOR") { throw AdminCantDeleteItSelfException() }
+
 
     private fun checkIfOneUserAlreadyHasRole(role: String) = userRepository
             .findAll()
@@ -86,14 +93,18 @@ class AdminService(private val userRepository: UserRepository) {
             .toSet()
             .contains("ROLE_$role")
             .takeIf { it }
-            ?.let { throw RoleAlreadyAssignedException()  }
+            ?.let { throw RoleAlreadyAssignedException()
+            }
 
 
     private fun grantUserRole(userRoles: MutableSet<Role>, role: String): Set<Role> {
+        throwErrorIfGranteeIsAdmin(userRoles)
         checkIfOneUserAlreadyHasRole(role)
         userRoles.add(Role(userRole= "ROLE_$role"))
         return  userRoles
     }
 
-
+    private fun throwErrorIfGranteeIsAdmin(userRoles: MutableSet<Role>) =
+        userRoles.any { it.userRole == "ROLE_ADMINISTRATOR" }.takeIf { it }
+            ?.let { throw RoleCombinationException() }
 }

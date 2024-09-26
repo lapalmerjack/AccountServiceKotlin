@@ -1,7 +1,6 @@
 package com.kotlin.AccountService.services
 
 import com.kotlin.AccountService.entities.AuthorityEntity
-import com.kotlin.AccountService.entities.Role
 import com.kotlin.AccountService.entities.User
 import com.kotlin.AccountService.errors.customexceptions.*
 import com.kotlin.AccountService.repositories.UserRepository
@@ -145,11 +144,12 @@ class AdminServiceTest {
 
         every { userRepository.findByEmailIgnoreCase(any()) } returns userWithNewRole
         every { userRepository.save(any()) } answers { firstArg() }
+        every { userRepository.findAll()} returns myUsers
 
 
         val userResponse = adminService.updateUserRoles(myAuthorityEntity)
         val userRoles = userResponse.roles.map { it.userRole }
-        println("my user roles $userRoles")
+
 
         assertTrue(userRoles.contains("ROLE_ACCOUNTANT"))
 
@@ -168,7 +168,7 @@ class AdminServiceTest {
     }
 
     @Test
-    fun `An error is thrown when the user already has the unique role`() {
+    fun `An error is thrown when another user already has the unique role`() {
         val userWithNewRole = myUsers[1]
 
         val myAuthorityEntity = AuthorityEntity(user = "jane@acme.com", role = "AUDITOR",
@@ -183,6 +183,73 @@ class AdminServiceTest {
         }
         assertEquals("Role already assigned to a user", exception.message)
 
+    }
+
+    @Test
+    fun `An error is thrown when the administrator tries to give itself another user a unique role that is already taken`() {
+        val userWithNewRole = myUsers[0]
+
+        val myAuthorityEntity = AuthorityEntity(user = "john@acme.com", role = "ACCOUNTANT",
+            operation = AuthorityEntity.Operations.GRANT)
+
+        every { userRepository.findByEmailIgnoreCase(any()) } returns userWithNewRole
+
+        val exception = assertThrows<RoleCombinationException> {
+            adminService.updateUserRoles(myAuthorityEntity)
+        }
+        assertEquals("The user cannot combine admin and business roles!", exception.message)
+    }
+
+    @Test
+    fun `A role for a user is able to be deleted`() {
+        val userWithRoleToRemove = myUsers[2]
+
+        val myAuthorityEntity = AuthorityEntity(user = "michael@acme.com", role = "AUDITOR",
+            operation = AuthorityEntity.Operations.REMOVE)
+
+        every { userRepository.findByEmailIgnoreCase(any()) } returns userWithRoleToRemove
+        every { userRepository.save(any()) } answers { firstArg() }
+
+
+        val userResponse = adminService.updateUserRoles(myAuthorityEntity)
+        val userRoles = userResponse.roles.map { it.userRole }
+
+
+        assertTrue(userRoles.size == 1)
+        assertTrue(!userRoles.contains("ROLE_AUDITOR"))
+
+    }
+
+    @Test
+    fun `An error is thrown if administrator try's to delete remove administrator role`() {
+        val userWithRoleToRemove = myUsers[2]
+
+        val myAuthorityEntity = AuthorityEntity(user = "john@acme.com", role = "ADMINISTRATOR",
+            operation = AuthorityEntity.Operations.REMOVE)
+
+        every { userRepository.findByEmailIgnoreCase(any()) } returns userWithRoleToRemove
+
+        val exception = assertThrows<AdminCantDeleteItSelfException> {
+            adminService.updateUserRoles(myAuthorityEntity)
+        }
+
+        assertEquals("Can't remove ADMINISTRATOR role!", exception.message)
+    }
+
+    @Test
+    fun `Throw an error when admin tries to delete last role for a user`() {
+        val userWithRoleToRemove = myUsers[3]
+
+        val myAuthorityEntity = AuthorityEntity(user = "john@acme.com", role = "USER",
+            operation = AuthorityEntity.Operations.REMOVE)
+
+        every { userRepository.findByEmailIgnoreCase(any()) } returns userWithRoleToRemove
+
+        val exception = assertThrows<InsufficientRoleCountException> {
+            adminService.updateUserRoles(myAuthorityEntity)
+        }
+
+        assertEquals("The user must have at least one role!", exception.message)
 
 
     }

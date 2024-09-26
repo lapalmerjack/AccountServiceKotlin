@@ -21,3 +21,4 @@ class RoleDoesNotExistForUser(message: String = "Role does not exist for user"):
 class AdminCantDeleteItSelfException(message: String = "Can't remove ADMINISTRATOR role!"): RuntimeException(message)
 
 class UserRoleExistsException(message: String = "User already has this role"): RuntimeException(message)
+
