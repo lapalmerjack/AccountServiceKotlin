@@ -1,5 +1,6 @@
 package com.kotlin.AccountService.services
 
+import com.kotlin.AccountService.entities.Salary
 import com.kotlin.AccountService.entities.SalaryResponse
 import com.kotlin.AccountService.errors.customexceptions.DateSyntaxIncorrectException
 import com.kotlin.AccountService.errors.customexceptions.NoExistingDatePeriodException
@@ -29,9 +30,15 @@ class SalaryService(private val salaryRepository: SalaryRepository, private val 
         return SalaryResponse(fetchedUser.name, fetchedUser.lastname, formatPeriodResponse, formattedSalary)
 
     }
+
+    fun getPayments(userEmail: String): List<SalaryResponse> {
+        val user = userRepository.findByEmailIgnoreCase(userEmail) ?: throw UserNotFoundException()
+
+        return emptyList()
+    }
     private fun checkPeriodSyntax(date: String) =
         checkCondition(
-            condition = { Regex("^(0[1-9]|1[0-2])-(20\\d{2})$").matches(date) },
+            condition = { !Regex("^(0[1-9]|1[0-2])-(20\\d{2})$").matches(date) },
             exception = DateSyntaxIncorrectException()
         )
 

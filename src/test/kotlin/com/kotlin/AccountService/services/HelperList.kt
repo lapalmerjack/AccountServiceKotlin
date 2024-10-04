@@ -41,6 +41,8 @@ val dummyUserList = mutableListOf(
     ).apply {
         addPayment(Salary(employee = email, period = "01-2024", salary = 600047, user = this))
         addPayment(Salary(employee = email, period = "02-2024", salary = 600330, user = this))
+        addPayment(Salary(employee = email, period = "03-2024", salary = 600330, user = this))
+        addPayment(Salary(employee = email, period = "04-2024", salary = 600330, user = this))
     },
     User(
         id = 4,

@@ -1,5 +1,6 @@
 package com.kotlin.AccountService.services
 
+import com.kotlin.AccountService.entities.SalaryResponse
 import com.kotlin.AccountService.entities.User
 import com.kotlin.AccountService.errors.customexceptions.DateSyntaxIncorrectException
 import com.kotlin.AccountService.errors.customexceptions.NoExistingDatePeriodException
@@ -64,8 +65,17 @@ class SalaryServiceTest {
     fun `Throws an exception when the syntax for date is wrong` () {
 
         val exception = org.junit.jupiter.api.assertThrows<DateSyntaxIncorrectException> {
-            salaryService.getPayment("cooldude@acme.com", "02893-210jio27")
+            salaryService.getPayment("cooldude@acme.com", "011-2017")
         }
         assertEquals("Please input the proper date period", exception.message)
+    }
+
+    @Test
+    fun `returns all payments for a user`() {
+
+        val salaries = salaryService.getPayments("michael@acme.com")
+
+        assertEquals(5, salaries.size)
+
     }
 }
