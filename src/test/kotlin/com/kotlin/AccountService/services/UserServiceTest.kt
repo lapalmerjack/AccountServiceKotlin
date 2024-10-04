@@ -1,6 +1,7 @@
 package com.kotlin.AccountService.services
 
 import com.kotlin.AccountService.entities.User
+import com.kotlin.AccountService.entities.UserResponse
 import com.kotlin.AccountService.errors.customexceptions.MinimumPasswordLengthException
 import com.kotlin.AccountService.errors.customexceptions.NewPasswordMatchesOldPasswordException
 import com.kotlin.AccountService.errors.customexceptions.PasswordMatchesBannedPasswordException
@@ -85,23 +86,29 @@ class UserServiceTest {
             userService.changePassword(myUser.email, newPassword)
         }
 
-        assertEquals("Password length must be at least 12 characters", exception.message)
+        assertEquals("Password length must be at least 12 chars", exception.message)
 
     }
 
     @Test
     fun `User is successfully saved to the database`() {
         val myUser =   User(
-            name = "John",
-            lastname = "Doe",
-            email = "john@acme.com",
+            name = "Mike",
+            lastname = "Kinsey",
+            email = "kinsey@acme.com",
             password = "SecurePassword123"
         )
         every { userRepository.existsByEmail(any()) } returns false
         every { userRepository.save(any()) } returns dummyUserList[0]
+        every { userRepository.findAll() } returns myUsers
+        every { passwordEncoder.encode(any())} answers {firstArg()}
 
-        userService.registerUser(myUser)
+
+        val addedUser = userService.registerUser(myUser)
         verify(exactly = 1) { userRepository.save(any()) }
+        assertTrue(addedUser.roles.map { it.userRole }.contains("ROLE_USER"))
+        assertFalse(addedUser.roles.map { it.userRole }.contains("ROLE_ACCOUNTANT"))
+
     }
 
 

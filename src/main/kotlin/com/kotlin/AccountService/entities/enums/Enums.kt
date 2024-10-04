@@ -1,6 +1,6 @@
-package com.kotlin.AccountService.entities
+package com.kotlin.AccountService.entities.enums
 
-enum class BreachedPasswords( val breachedPassword: String) {
+enum class Enums(val breachedPassword: String) {
     PASSWORD_FOR_JANUARY("PasswordForJanuary"),
     PASSWORD_FOR_FEBRUARY("PasswordForFebruary"),
     PASSWORD_FOR_MARCH("PasswordForMarch"),
@@ -14,3 +14,5 @@ enum class BreachedPasswords( val breachedPassword: String) {
     PASSWORD_FOR_NOVEMBER("PasswordForNovember"),
     PASSWORD_FOR_DECEMBER("PasswordForDecember")
 }
+
+enum class LockingCondition { LOCK, UNLOCK }

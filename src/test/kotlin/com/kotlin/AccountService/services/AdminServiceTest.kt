@@ -1,7 +1,9 @@
 package com.kotlin.AccountService.services
 
 import com.kotlin.AccountService.entities.AuthorityEntity
+import com.kotlin.AccountService.entities.LockUnLockEntity
 import com.kotlin.AccountService.entities.User
+import com.kotlin.AccountService.entities.enums.LockingCondition
 import com.kotlin.AccountService.errors.customexceptions.*
 import com.kotlin.AccountService.repositories.UserRepository
 import io.mockk.*
@@ -251,6 +253,43 @@ class AdminServiceTest {
 
         assertEquals("The user must have at least one role!", exception.message)
 
+    }
+
+    @Test
+    fun `Admin is able to lock an account to prevent logins`() {
+
+        every { userRepository.findByEmailIgnoreCase(any()) } returns myUsers[1]
+
+        val lockingPayload = LockUnLockEntity("jane@acme.com", LockingCondition.LOCK)
+        val user = adminService.updateUserLockCondition(lockingPayload)
+
+        assertTrue(!user.isAccountUnLocked)
+
+    }
+
+    @Test
+    fun `An error is thrown when admin tries to lock its own account`() {
+
+        every { userRepository.findByEmailIgnoreCase(any()) } returns myUsers[0]
+
+        val lockingPayload = LockUnLockEntity("john@acme.com", LockingCondition.LOCK)
+
+        val exception = assertThrows<CanNotLockAdministratorException> {
+            adminService.updateUserLockCondition(lockingPayload)
+        }
+
+        assertEquals("Can't lock the Administrator!", exception.message)
+    }
+
+    @Test
+    fun `A user can become unlocked through the administrator` () {
+        every { userRepository.findByEmailIgnoreCase(any()) } returns myUsers[3]
+
+        val lockingPayload = LockUnLockEntity("emily@acme.com", LockingCondition.UNLOCK)
+        val user = adminService.updateUserLockCondition(lockingPayload)
+
+        assertTrue(user.isAccountUnLocked)
+        assertEquals(user.loginAttempts, 0)
 
     }
 

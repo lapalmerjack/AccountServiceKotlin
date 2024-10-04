@@ -26,13 +26,6 @@ data class Salary(
     @ManyToOne(cascade = [CascadeType.DETACH, CascadeType.MERGE, CascadeType.REFRESH, CascadeType.PERSIST])
     @JoinColumn(name = "user_id")
     @JsonIgnore
-    var user: User? = null
+    var user: User
 
-) {
-    // Optionally override toString() if needed, though data class provides one by default
-    override fun toString(): String {
-        return "Salary(Id=$id, employee='$employee', period='$period', salary=$salary)"
-    }
-
-
-}
+)

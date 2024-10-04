@@ -1,6 +1,6 @@
 package com.kotlin.AccountService.services
 
-import com.kotlin.AccountService.entities.BreachedPasswords
+import com.kotlin.AccountService.entities.enums.Enums
 import com.kotlin.AccountService.entities.Role
 import com.kotlin.AccountService.entities.User
 import com.kotlin.AccountService.entities.UserResponse
@@ -50,7 +50,7 @@ class UserService(private val userRepository: UserRepository, private val passwo
         logger.info("Checking password length")
         throwErrorIfPasswordLengthIsTooShort(newPassword)
 
-      val fetchedUser = userRepository.findByEmailIgnoreCase(userEmail)
+        val fetchedUser = userRepository.findByEmailIgnoreCase(userEmail)
           ?: throw UserNotFoundException()
 
         logger.info("checking that passwords don't match")
@@ -64,21 +64,29 @@ class UserService(private val userRepository: UserRepository, private val passwo
 
     }
 
-    private fun throwErrorIfPasswordLengthIsTooShort(password: String) {
-        if (password.length < 12) {
-            throw MinimumPasswordLengthException()
-        }
-    }
+    private fun throwErrorIfPasswordLengthIsTooShort(password: String) =
+        checkCondition(condition = {password.length < 12},
+            exception = MinimumPasswordLengthException()
+        )
 
-    private fun throwErrorIfUserIsAlreadyInDatabase(email: String) = userRepository.existsByEmail(email)
-        .takeIf { it }?.let { throw UserFoundException() }
+
+    private fun throwErrorIfUserIsAlreadyInDatabase(email: String) =
+        checkCondition(
+            condition = { userRepository.existsByEmail(email)},
+            exception = UserFoundException()
+        )
+
 
     private fun throwErrorIfPasswordIsBanned(password: String) =
-        BreachedPasswords.entries.any { it.breachedPassword == password }
-            .takeIf { it }?.let { throw PasswordMatchesBannedPasswordException() }
+        checkCondition(
+            condition = { Enums.entries.any { it.breachedPassword == password } },
+            exception = PasswordMatchesBannedPasswordException()
+        )
 
     private fun throwErrorIfNewPassWordMatchesOldPassword
-                (oldPassword: String, newPassword: String)
-    = passwordEncoder.matches(oldPassword, newPassword).takeIf { it }
-        ?.let { throw NewPasswordMatchesOldPasswordException() }
+                (oldPassword: String, newPassword: String) =
+        checkCondition(
+            condition = { passwordEncoder.matches(oldPassword, newPassword)},
+            exception = NewPasswordMatchesOldPasswordException()
+        )
 }

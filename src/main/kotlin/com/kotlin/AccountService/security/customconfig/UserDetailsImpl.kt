@@ -13,7 +13,8 @@ class UserDetailsImpl(private val user: User) : UserDetails {
         val roles: Set<Role> = user.roles
         val authorities: MutableList<SimpleGrantedAuthority?> = ArrayList()
 
-        roles.forEach(Consumer<Role> { role: Role -> authorities.add(SimpleGrantedAuthority(role.userRole)) })
+        roles.forEach(Consumer<Role> { role: Role ->
+            authorities.add(SimpleGrantedAuthority(role.userRole)) })
 
         return authorities
     }

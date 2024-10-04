@@ -1,9 +1,7 @@
 package com.kotlin.AccountService.services
 
-import com.kotlin.AccountService.entities.AuthorityEntity
-import com.kotlin.AccountService.entities.Role
-import com.kotlin.AccountService.entities.User
-import com.kotlin.AccountService.entities.UserResponse
+import com.kotlin.AccountService.entities.*
+import com.kotlin.AccountService.entities.enums.LockingCondition
 import com.kotlin.AccountService.errors.customexceptions.*
 import com.kotlin.AccountService.repositories.UserRepository
 import org.slf4j.LoggerFactory
@@ -33,7 +31,7 @@ class AdminService(private val userRepository: UserRepository) {
 
     @Transactional
     fun updateUserRoles(authorityEntity: AuthorityEntity): UserResponse {
-        conductSeriesOfChecks(authorityEntity)
+        throwErrorIfRoleDoesNotExist(authorityEntity.role)
         val user = retrieveEmployeeInfo(authorityEntity.user)
         val userRoles = user.roles.toMutableSet()
 
@@ -48,21 +46,43 @@ class AdminService(private val userRepository: UserRepository) {
             email = updatedUser.email,
             roles = updatedUser.roles.toSet() )
 
-
     }
 
-    private fun conductSeriesOfChecks(authorityEntity: AuthorityEntity) {
-        logger.info("conduct checks before grant/removal of role {}", authorityEntity.role)
-        checkRoleName(authorityEntity.role)
-    }
+    @Transactional
+    fun updateUserLockCondition(lockUnLockEntity: LockUnLockEntity): User {
 
-    private fun checkRoleName(role: String) {
-        val regex = Regex("ADMINISTRATOR|USER|ACCOUNTANT|AUDITOR")
+        val user = userRepository.findByEmailIgnoreCase(lockUnLockEntity.userEmail)
+            ?: throw UserNotFoundException()
 
-        if (!regex.matches(role)) {
-            throw RoleDoesNotExistException()
+        val updatedUserLock = when(lockUnLockEntity.lockingCondition) {
+            LockingCondition.LOCK -> lockUser(user)
+            LockingCondition.UNLOCK -> unlockUser(user)
         }
+
+
+        return updatedUserLock
     }
+
+    private fun unlockUser(user: User): User {
+        return user.copy(isAccountUnLocked = true, loginAttempts = 0)
+
+    }
+
+    private fun lockUser(user: User): User {
+        checkCondition(
+            condition = { user.roles.map { it.userRole }.contains("ROLE_ADMINISTRATOR") },
+            exception = CanNotLockAdministratorException()
+        )
+        return user.copy(isAccountUnLocked = false)
+
+    }
+
+    private fun throwErrorIfRoleDoesNotExist(role: String) =
+        checkCondition(
+            condition = { !Regex("ADMINISTRATOR|USER|ACCOUNTANT|AUDITOR").matches(role)},
+            exception = RoleDoesNotExistException()
+        )
+
 
     private fun handleOperationForRoles(userRoles: MutableSet<Role>, authorityEntity: AuthorityEntity): Set<Role> =
         when (authorityEntity.operation) {
@@ -80,21 +100,27 @@ class AdminService(private val userRepository: UserRepository) {
     }
 
     private fun throwErrorIfOnlyOneRoleExistAndCantBeRemoved(userRoles: MutableSet<Role>) =
-        require(userRoles.size > 1) { throw InsufficientRoleCountException() }
+        checkCondition(
+            condition = { userRoles.size <= 1 },
+            exception = InsufficientRoleCountException()
+        )
 
     private fun throwErrorIfRoleToRemoveIsAdmin(role: String) =
-        require(role != "ADMINISTRATOR") { throw AdminCantDeleteItSelfException() }
+        checkCondition(
+            condition = { role == "ADMINISTRATOR"},
+            exception = AdminCantDeleteItSelfException()
+        )
 
 
-    private fun checkIfOneUserAlreadyHasRole(role: String) = userRepository
-            .findAll()
-            .flatMap { it.roles }
-            .map { it.userRole }
-            .toSet()
-            .contains("ROLE_$role")
-            .takeIf { it }
-            ?.let { throw RoleAlreadyAssignedException()
-            }
+    private fun checkIfOneUserAlreadyHasRole(role: String) =
+        checkCondition(
+            condition = { userRepository.findAll()
+                .flatMap { it.roles }
+                .any { it.userRole == "ROLE_$role"  }},
+            exception =  RoleAlreadyAssignedException()
+        )
+
+
 
 
     private fun grantUserRole(userRoles: MutableSet<Role>, role: String): Set<Role> {
@@ -105,6 +131,10 @@ class AdminService(private val userRepository: UserRepository) {
     }
 
     private fun throwErrorIfGranteeIsAdmin(userRoles: MutableSet<Role>) =
-        userRoles.any { it.userRole == "ROLE_ADMINISTRATOR" }.takeIf { it }
-            ?.let { throw RoleCombinationException() }
+        checkCondition(
+            condition = { userRoles.any { it.userRole == "ROLE_ADMINISTRATOR"} },
+            exception = RoleCombinationException()
+        )
+//        userRoles.any { it.userRole == "ROLE_ADMINISTRATOR" }.takeIf { it }
+//            ?.let { throw RoleCombinationException() }
 }
